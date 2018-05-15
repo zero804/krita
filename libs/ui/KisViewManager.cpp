@@ -433,7 +433,7 @@ void KisViewManager::setCurrentView(KisView *view)
                 preset = rserver->resources().first();
             }
             if (preset) {
-                paintOpBox()->restoreResource(preset.data());
+               d->canvasResourceProvider.setPaintOpPreset(preset);
             }
 
             const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();

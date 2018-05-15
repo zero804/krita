@@ -325,7 +325,13 @@ void KisActionManager::updateGUI()
                 }
             }
 
+            // If the action is checked and it gets disabled, Qt clears the check flag.
+            // If the action is checked and it gets enabled, Qt does not repaint the button.
+            bool status = action->isChecked();
             action->setActionEnabled(enable);
+            // Restore the action to its proper status. -amyspark
+            action->setChecked(false);
+            action->setChecked(status);
         }
     }
 }

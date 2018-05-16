@@ -708,14 +708,13 @@ void KisPaintopBox::updateCompositeOp(QString compositeOpID)
     if (compositeOpID != m_currCompositeOpID) {
         m_currCompositeOpID = compositeOpID;
     }
-    if (compositeOpID == COMPOSITE_ERASE || m_resourceProvider->eraserMode()) {
-        m_resourceProvider->setEraserMode(true);
-        m_eraseModeButton->setChecked(true);
-    }
-    else {
-        m_resourceProvider->setEraserMode(false);
-        m_eraseModeButton->setChecked(false);
-    }
+
+    // Do NOT check eraserMode here
+    // If you were using an Eraser preset, the op forcibly overrides the mode's
+    // value and Krita will throw an assertion when checking
+    // Just override it.
+    m_resourceProvider->setEraserMode(compositeOpID == COMPOSITE_ERASE);
+    m_eraseAction->setChecked(compositeOpID == COMPOSITE_ERASE);
 
     if (node && node->paintDevice()) {
         if (!node->paintDevice()->colorSpace()->hasCompositeOp(compositeOpID))
@@ -732,7 +731,7 @@ void KisPaintopBox::setWidgetState(int flags)
 {
     if (flags & (ENABLE_COMPOSITEOP | DISABLE_COMPOSITEOP)) {
         m_cmbCompositeOp->setEnabled(flags & ENABLE_COMPOSITEOP);
-        m_eraseModeButton->setEnabled(flags & ENABLE_COMPOSITEOP);
+        m_eraseAction->setEnabled(flags & ENABLE_COMPOSITEOP);
     }
 
     if (flags & (ENABLE_PRESETS | DISABLE_PRESETS)) {
@@ -811,7 +810,7 @@ void KisPaintopBox::slotInputDeviceChanged(const KoInputDevice& inputDevice)
 
                 if (preset->settings()->paintOpCompositeOp() == COMPOSITE_ERASE || m_resourceProvider->eraserMode()) {
                     m_resourceProvider->setEraserMode(true);
-                    m_eraseModeButton->setChecked(true);
+                    m_eraseAction->setChecked(true);
                 }
             }
         }
@@ -895,7 +894,18 @@ void KisPaintopBox::slotCanvasResourceChanged(int key, const QVariant &value)
         }
 
         if (key == KisCanvasResourceProvider::EraserMode) {
-            m_eraseAction->setChecked(value.toBool());
+            if (m_resourceProvider->currentCompositeOp() == COMPOSITE_ERASE) {
+                // The Eraser is still enabled via mode
+                // This may cause trouble when checking eraserMode() after
+                // - reloading the preset
+                // - then changing to a different one
+                m_resourceProvider->setEraserMode(true);
+                m_eraseAction->setChecked(true);
+            }
+            else {
+                m_resourceProvider->setEraserMode(value.toBool());
+                m_eraseAction->setChecked(value.toBool());
+            }
         }
 
         if (key == KisCanvasResourceProvider::DisablePressure) {
